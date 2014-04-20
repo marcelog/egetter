@@ -1,0 +1,23 @@
+{application, egetter, [
+  {description, ""},
+  {vsn, git},
+  {registered, [egetter_sup]},
+  {applications, [
+    kernel,
+    stdlib,
+    compiler,
+    syntax_tools,
+    lager,
+    crypto,
+    asn1,
+    public_key,
+    ssl,
+    ibrowse
+  ]},
+  {mod, { egetter_app, []}},
+  {start_phases, [
+  	{read_user_agents, []},
+  	{read_proxies, []}
+  ]},
+  {env, []}
+]}.
