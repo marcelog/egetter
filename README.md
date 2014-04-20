@@ -20,3 +20,6 @@ tree.
  * You will need a list of proxies and a list of user agents. There are examples
  in the [priv directory](https://github.com/marcelog/egetter/tree/master/priv)
  
+ * Call **egetter:req/1** passing in a url (a string). You will get a proplist with:
+   * {headers, [{string(), string()}]}
+   * {body, binary()}
