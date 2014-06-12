@@ -82,7 +82,10 @@ load_proxies(Filename) ->
   ok.
 
 %% @doc Does a request.
--spec req([option()]) -> proplists:proplist().
+-spec req([option()]) ->
+  {ok, proplists:proplist()}
+  | {error, proplists:proplist()}
+  | {ibrowse_error, term()}.
 req(Options) ->
   Get = fun(K, Default) -> proplists:get_value(K, Options, Default) end,
   Agent = random_user_agent(),
@@ -93,25 +96,26 @@ req(Options) ->
   FollowRedirect = Get(follow_redirect, false),
   Headers = [{"User-Agent", Agent} | Get(headers, [])],
   IOptions = [{response_format, binary}|setup_ibrowse_options(Options)],
-  {ok, ResponseStatus, ResponseHeaders, ResponseBody} = ibrowse:send_req(
-    Url, Headers, Method, Body, IOptions, Timeout
-  ),
-  IsRedirect = $3 =:= hd(ResponseStatus),
-  IsSuccess = $2 =:= hd(ResponseStatus),
-  Result = [
-    {status, ResponseStatus},
-    {headers, ResponseHeaders},
-    {body, ResponseBody}
-  ],
-  if
-    IsRedirect andalso FollowRedirect ->
-      NewUrl = proplists:get_value("Location", ResponseHeaders),
-      lager:debug("Following redirect: ~p: ~p", [ResponseStatus, ResponseHeaders]),
-      req(lists:keystore(url, 1, Options, {url, NewUrl}));
-    IsSuccess -> Result;
-    true ->
-      lager:error("Request failed: ~p", [Result]),
-      Result
+  case ibrowse:send_req(Url, Headers, Method, Body, IOptions, Timeout) of
+    {error, Error} -> {ibrowse_error, Error};
+    {ok, ResponseStatus, ResponseHeaders, ResponseBody} ->
+      IsRedirect = $3 =:= hd(ResponseStatus),
+      IsSuccess = $2 =:= hd(ResponseStatus),
+      Result = [
+        {status, ResponseStatus},
+        {headers, ResponseHeaders},
+        {body, ResponseBody}
+      ],
+      if
+        IsRedirect andalso FollowRedirect ->
+          NewUrl = proplists:get_value("Location", ResponseHeaders),
+          lager:debug("Redirecting: ~p: ~p", [ResponseStatus, ResponseHeaders]),
+          req(lists:keystore(url, 1, Options, {url, NewUrl}));
+        IsSuccess -> {ok, Result};
+        true ->
+          lager:error("Request failed: ~p", [Result]),
+          {error, Result}
+      end
   end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
