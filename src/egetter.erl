@@ -26,7 +26,7 @@
 
 -type result_field()::
   {body, binary()}
-  | {status, string()}
+  | {status, pos_integer()}
   | {headers, [{string(), string()}]}.
 
 -type result()::
@@ -207,8 +207,9 @@ form_result(_Options, {error, Error}) ->
 
 form_result(Options, {ok, ResponseStatus, ResponseHeaders, ResponseBody}) ->
   FollowRedirect = proplists:get_value(follow_redirect, Options, false),
-  IsRedirect = $3 =:= hd(ResponseStatus),
-  IsSuccess = $2 =:= hd(ResponseStatus),
+  IntStatus = list_to_integer(ResponseStatus),
+  IsRedirect = IntStatus >= 300 andalso IntStatus < 400,
+  IsSuccess = IntStatus >= 200 andalso IntStatus < 400,
   Result = [
     {status, ResponseStatus},
     {headers, ResponseHeaders},

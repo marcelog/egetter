@@ -20,12 +20,12 @@ tree.
  
  * Call **egetter:req/1** passing in a list of options. You will get a **result()**, which is one of:
    * {ibrowse_error, term()}: on "hard" errors returned by ibrowse.
-   * {error, [result_field()]}: When the request fails (i.e: status code not 200/300).
-   * {ok, [result_field()]}: When the result is 2xx
+   * {error, [result_field()]}: When the request fails (i.e: status code not 2xx/3xx).
+   * {ok, [result_field()]}: When the result is 2xx or 3xx.
 
    * **[result_field()]** will be composed of:
      * {headers, [{string(), string()}]}
-     * {status, string()}
+     * {status, pos_integer()}
      * {body, binary()}
 
  * Available options:
