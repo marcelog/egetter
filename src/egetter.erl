@@ -104,30 +104,11 @@ req(Options) ->
   Body = Get(body, <<>>),
   Timeout = Get(timeout, 5000),
   Method = Get(method, get),
-  FollowRedirect = Get(follow_redirect, false),
   Headers = [{"User-Agent", Agent} | Get(headers, [])],
   IOptions = [{response_format, binary}|setup_ibrowse_options(Options)],
-  case ibrowse:send_req(Url, Headers, Method, Body, IOptions, Timeout) of
-    {error, Error} -> {ibrowse_error, Error};
-    {ok, ResponseStatus, ResponseHeaders, ResponseBody} ->
-      IsRedirect = $3 =:= hd(ResponseStatus),
-      IsSuccess = $2 =:= hd(ResponseStatus),
-      Result = [
-        {status, ResponseStatus},
-        {headers, ResponseHeaders},
-        {body, ResponseBody}
-      ],
-      if
-        IsRedirect andalso FollowRedirect ->
-          NewUrl = proplists:get_value("Location", ResponseHeaders),
-          lager:debug("Redirecting: ~p: ~p", [ResponseStatus, ResponseHeaders]),
-          req(lists:keystore(url, 1, Options, {url, NewUrl}));
-        IsSuccess -> {ok, Result};
-        true ->
-          lager:error("Request failed: ~p", [Result]),
-          {error, Result}
-      end
-  end.
+  form_result(
+    Options, ibrowse:send_req(Url, Headers, Method, Body, IOptions, Timeout)
+  ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Private API.
@@ -215,3 +196,31 @@ ibrowse_option({ibrowse_options, Options}) ->
   Options;
 ibrowse_option(_) ->
   [].
+
+
+-spec form_result(
+  [option()],
+  {error, term()} | {ok, string(), [{string(), string()}], binary()}
+) -> result().
+form_result(_Options, {error, Error}) ->
+  {ibrowse_error, Error};
+
+form_result(Options, {ok, ResponseStatus, ResponseHeaders, ResponseBody}) ->
+  FollowRedirect = proplists:get_value(follow_redirect, Options, false),
+  IsRedirect = $3 =:= hd(ResponseStatus),
+  IsSuccess = $2 =:= hd(ResponseStatus),
+  Result = [
+    {status, ResponseStatus},
+    {headers, ResponseHeaders},
+    {body, ResponseBody}
+  ],
+  if
+    IsRedirect andalso FollowRedirect ->
+      NewUrl = proplists:get_value("Location", ResponseHeaders),
+      lager:debug("Redirecting: ~p: ~p", [ResponseStatus, ResponseHeaders]),
+      req(lists:keystore(url, 1, Options, {url, NewUrl}));
+    IsSuccess -> {ok, Result};
+    true ->
+      lager:error("Request failed: ~p", [Result]),
+      {error, Result}
+  end.
