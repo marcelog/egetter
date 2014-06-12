@@ -81,7 +81,7 @@ load_proxies(Filename) ->
   _ = egetter:cfg_set(proxies_ets, {EtsName, Lines}),
   ok.
 
-%% @doc Does a GET request.
+%% @doc Does a request.
 -spec req([option()]) -> proplists:proplist().
 req(Options) ->
   Get = fun(K, Default) -> proplists:get_value(K, Options, Default) end,
