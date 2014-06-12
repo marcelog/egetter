@@ -20,13 +20,26 @@
   egetter
 ]).
 
+-type option()::
+  {url, string()}
+  | {timeout, pos_integer()}
+  | {headers, [{string()|atom(), string()}]}
+  | {body, binary()}
+  | {method, get | post | put | delete | head | options}
+  | {follow_redirect, true | false}
+  | {ibrowse_options, [{atom(), term()}]}
+  | {use_proxy, true|false}
+  | {save_to, string()}.
+
+-export_type([option/0]).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Public API.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% @doc Useful to start the application via the -s command line argument.
 -spec start() -> ok.
 start() ->
-  _ = [ok = application:start(A) || A <- ?APPS],
+  _ = [application:start(A) || A <- ?APPS],
   ok.
 
 %% @doc Returns the name of the internal ets config table.
@@ -69,42 +82,36 @@ load_proxies(Filename) ->
   ok.
 
 %% @doc Does a GET request.
--spec req(proplists:proplist()) -> proplists:proplist().
+-spec req([option()]) -> proplists:proplist().
 req(Options) ->
+  Get = fun(K, Default) -> proplists:get_value(K, Options, Default) end,
   Agent = random_user_agent(),
-  Url = proplists:get_value(url, Options),
-  Body = proplists:get_value(body, Options, <<>>),
-  Timeout = proplists:get_value(timeout, Options, 5000),
-  Method = proplists:get_value(method, Options, get),
-  Headers = [
-    {"User-Agent", Agent}
-    | proplists:get_value(headers, Options, [])
-  ],
-  {Host, Port} = case binary:split(random_proxy(), <<":">>) of
-    [H] -> {H, <<"80">>};
-    [H, P] -> {H, P}
-  end,
-  IOptions = [
-    {response_format, binary},
-    {proxy_host, binary_to_list(Host)},
-    {proxy_port, binary_to_integer(Port)}
-    |proplists:get_value(ibrowse_options, Options, [])
-  ],
-  lager:debug("Requesting: ~p through ~p", [Options, {Host, Port}]),
-  {ok, Status, ResponseHeaders, ResponseBody} = ibrowse:send_req(
+  Url = Get(url, missing_url),
+  Body = Get(body, <<>>),
+  Timeout = Get(timeout, 5000),
+  Method = Get(method, get),
+  FollowRedirect = Get(follow_redirect, false),
+  Headers = [{"User-Agent", Agent} | Get(headers, [])],
+  IOptions = [{response_format, binary}|setup_ibrowse_options(Options)],
+  {ok, ResponseStatus, ResponseHeaders, ResponseBody} = ibrowse:send_req(
     Url, Headers, Method, Body, IOptions, Timeout
   ),
-  case Status of
-    [$3, _, _] ->
+  IsRedirect = $3 =:= hd(ResponseStatus),
+  IsSuccess = $2 =:= hd(ResponseStatus),
+  Result = [
+    {status, ResponseStatus},
+    {headers, ResponseHeaders},
+    {body, ResponseBody}
+  ],
+  if
+    IsRedirect andalso FollowRedirect ->
       NewUrl = proplists:get_value("Location", ResponseHeaders),
-      lager:debug("Following redirect: ~p: ~p", [Status, ResponseHeaders]),
+      lager:debug("Following redirect: ~p: ~p", [ResponseStatus, ResponseHeaders]),
       req(lists:keystore(url, 1, Options, {url, NewUrl}));
-    [$2, _, _] -> [{headers, ResponseHeaders}, {body, ResponseBody}];
-    _ ->
-      lager:error(
-        "Request failed: ~p: Headers: ~p / Body: ~p",
-        [Status, ResponseHeaders, ResponseBody]
-      )
+    IsSuccess -> Result;
+    true ->
+      lager:error("Request failed: ~p", [Result]),
+      Result
   end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -163,3 +170,33 @@ random(N) ->
   {A, B, C} = os:timestamp(),
   random:seed(A, B, C),
   random:uniform(N).
+
+%% @doc Setups different ibrowse options based on the request options.
+-spec setup_ibrowse_options([option()]) -> [{atom(), term()}].
+setup_ibrowse_options(ReqOptions) ->
+  setup_ibrowse_options(ReqOptions, []).
+
+setup_ibrowse_options([], Acc) ->
+  Acc;
+
+setup_ibrowse_options([Option|Rest], Acc) ->
+  setup_ibrowse_options(Rest, Acc ++ ibrowse_option(Option)).
+
+%% @doc Setups different ibrowse options based on the request options.
+-spec ibrowse_option(option()) -> [{atom(), term()}].
+ibrowse_option({use_proxy, true}) ->
+  {Host, Port} = case binary:split(random_proxy(), <<":">>) of
+    [H] -> {H, <<"80">>};
+    [H, P] -> {H, P}
+  end,
+  lager:debug("Requesting through ~p", [{Host, Port}]),
+  [
+    {proxy_host, binary_to_list(Host)},
+    {proxy_port, binary_to_integer(Port)}
+  ];
+ibrowse_option({use_proxy, false}) ->
+  [];
+ibrowse_option({ibrowse_options, Options}) ->
+  Options;
+ibrowse_option(_) ->
+  [].
