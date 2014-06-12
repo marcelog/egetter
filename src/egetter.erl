@@ -8,7 +8,6 @@
 -export([load_user_agents/1, load_proxies/1]).
 -export([internal_ets/0]).
 -export([start/0]).
--export([random_proxy/0, random_user_agent/0]).
 -export([req/1]).
 
 -define(APPS, [
@@ -18,8 +17,6 @@
   crypto,
   asn1,
   public_key,
-  ssl,
-  ibrowse,
   egetter
 ]).
 
@@ -29,7 +26,8 @@
 %% @doc Useful to start the application via the -s command line argument.
 -spec start() -> ok.
 start() ->
-  [application:start(A) || A <- ?APPS].
+  _ = [ok = application:start(A) || A <- ?APPS],
+  ok.
 
 %% @doc Returns the name of the internal ets config table.
 -spec internal_ets() -> atom().
@@ -53,7 +51,7 @@ cfg_get(Key) ->
   end.
 
 %% @doc Loads a list of user agents.
--spec load_user_agents(string()) -> {ets:tid(), pos_integer()}.
+-spec load_user_agents(string()) -> ok.
 load_user_agents(Filename) ->
   File = egetter:cfg_get(user_agents),
   lager:debug("Reading user agents from ~p", [File]),
@@ -70,43 +68,44 @@ load_proxies(Filename) ->
   _ = egetter:cfg_set(proxies_ets, {EtsName, Lines}),
   ok.
 
-%% @doc Returns a proxy chosen at random.
--spec random_proxy() -> binary()|undefined.
-random_proxy() ->
-  random_element(proxies_ets).
-
-%% @doc Returns a user agent chosen at random.
--spec random_user_agent() -> binary()|undefined.
-random_user_agent() ->
-  random_element(user_agents_ets).
-
 %% @doc Does a GET request.
--spec req(string()) -> proplists:proplist().
-req(Url) ->
+-spec req(proplists:proplist()) -> proplists:proplist().
+req(Options) ->
   Agent = random_user_agent(),
-  Options = [
-    {response_format, binary}
+  Url = proplists:get_value(url, Options),
+  Body = proplists:get_value(body, Options, <<>>),
+  Timeout = proplists:get_value(timeout, Options, 5000),
+  Method = proplists:get_value(method, Options, get),
+  Headers = [
+    {"User-Agent", Agent}
+    | proplists:get_value(headers, Options, [])
   ],
   {Host, Port} = case binary:split(random_proxy(), <<":">>) of
     [H] -> {H, <<"80">>};
     [H, P] -> {H, P}
   end,
-  Timeout = cfg_get(request_timeout),
-  ProxyOptions = [
+  IOptions = [
+    {response_format, binary},
     {proxy_host, binary_to_list(Host)},
     {proxy_port, binary_to_integer(Port)}
+    |proplists:get_value(ibrowse_options, Options, [])
   ],
-  IOptions = cfg_get(ibrowse_options) ++ ProxyOptions ++ Options,
-  Body = <<>>,
-  Headers = [
-    {"User-Agent", Agent}
-  ],
-  lager:debug("Requesting: ~p through ~p", [Url, {Host, Port}]),
+  lager:debug("Requesting: ~p through ~p", [Options, {Host, Port}]),
   {ok, Status, ResponseHeaders, ResponseBody} = ibrowse:send_req(
-    Url, Headers, get, Body, IOptions, Timeout
+    Url, Headers, Method, Body, IOptions, Timeout
   ),
-  [$2, _, _] = Status,
-  [{headers, ResponseHeaders}, {body, ResponseBody}].
+  case Status of
+    [$3, _, _] ->
+      NewUrl = proplists:get_value("Location", ResponseHeaders),
+      lager:debug("Following redirect: ~p: ~p", [Status, ResponseHeaders]),
+      req(lists:keystore(url, 1, Options, {url, NewUrl}));
+    [$2, _, _] -> [{headers, ResponseHeaders}, {body, ResponseBody}];
+    _ ->
+      lager:error(
+        "Request failed: ~p: Headers: ~p / Body: ~p",
+        [Status, ResponseHeaders, ResponseBody]
+      )
+  end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Private API.
@@ -119,6 +118,16 @@ internal_table_cfg_get(Key, Default) ->
     [] -> Default;
     [{Key, Value}] -> Value
   end.
+
+%% @doc Returns a proxy chosen at random.
+-spec random_proxy() -> binary()|undefined.
+random_proxy() ->
+  random_element(proxies_ets).
+
+%% @doc Returns a user agent chosen at random.
+-spec random_user_agent() -> binary()|undefined.
+random_user_agent() ->
+  random_element(user_agents_ets).
 
 %% @doc Selects a random element from the given ets type.
 -spec random_element(proxies_ets|user_agents_ets) -> term().

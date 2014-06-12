@@ -2,6 +2,10 @@
   {description, "Downloader for erlang"},
   {vsn, git},
   {registered, [egetter_sup]},
+  {included_applications, [
+    ssl,
+    ibrowse
+  ]},
   {applications, [
     kernel,
     stdlib,
@@ -10,9 +14,7 @@
     lager,
     crypto,
     asn1,
-    public_key,
-    ssl,
-    ibrowse
+    public_key
   ]},
   {mod, { egetter_app, []}},
   {start_phases, [
