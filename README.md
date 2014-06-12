@@ -11,15 +11,25 @@ tree.
 ```
 {egetter, [
   {user_agents, "/etc/egetter/priv/agents.txt"},
-  {proxies, "/etc/egetter/proxies.txt"},
-  {request_timeout, 5000},
-  {ibrowse_options, [{max_sessions, 20}]}
+  {proxies, "/etc/egetter/proxies.txt"}
 ]}
 ```
 
  * You will need a list of proxies and a list of user agents. There are examples
  in the [priv directory](https://github.com/marcelog/egetter/tree/master/priv)
  
- * Call **egetter:req/1** passing in a url (a string). You will get a proplist with:
+ * Call **egetter:req/1** passing in a list of options. You will get a proplist with:
    * {headers, [{string(), string()}]}
+   * {status, string()}
    * {body, binary()}
+
+ * Available options:
+   * {url, string()}
+   * {timeout, pos_integer()}
+   * {headers, [{string()|atom(), string()}]}
+   * {body, binary()}
+   * {method, get | post | put | delete | head | options}
+   * {follow_redirect, true | false} (defaults to false)
+   * {ibrowse_options, [{atom(), term()}]}
+   * {use_proxy, true|false} (defaults to false)
+   * {save_to, string()}
