@@ -18,10 +18,15 @@ tree.
  * You will need a list of proxies and a list of user agents. There are examples
  in the [priv directory](https://github.com/marcelog/egetter/tree/master/priv)
  
- * Call **egetter:req/1** passing in a list of options. You will get a proplist with:
-   * {headers, [{string(), string()}]}
-   * {status, string()}
-   * {body, binary()}
+ * Call **egetter:req/1** passing in a list of options. You will get a **result()**, which is one of:
+   * {ibrowse_error, term()}: on "hard" errors returned by ibrowse.
+   * {error, [result_field()]}: When the request fails (i.e: status code not 200/300).
+   * {ok, [result_field()]}: When the result is 2xx
+
+   * **[result_field()]** will be composed of:
+     * {headers, [{string(), string()}]}
+     * {status, string()}
+     * {body, binary()}
 
  * Available options:
    * {url, string()}
@@ -33,3 +38,4 @@ tree.
    * {ibrowse_options, [{atom(), term()}]}
    * {use_proxy, true | false} (defaults to false)
    * {save_to, string()}
+

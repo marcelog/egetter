@@ -10,16 +10,9 @@
 -export([start/0]).
 -export([req/1]).
 
--define(APPS, [
-  compiler,
-  syntax_tools,
-  lager,
-  crypto,
-  asn1,
-  public_key,
-  egetter
-]).
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Types.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 -type option()::
   {url, string()}
   | {timeout, pos_integer()}
@@ -31,7 +24,28 @@
   | {use_proxy, true|false}
   | {save_to, string()}.
 
+-type result_field()::
+  {body, binary()}
+  | {status, string()}
+  | {headers, [{string(), string()}]}.
+
+-type result()::
+  {ok, [result_field()]}
+  | {error, [result_field()]}
+  | {ibrowse_error, term()}.
+
 -export_type([option/0]).
+-export_type([result/0]).
+
+-define(APPS, [
+  compiler,
+  syntax_tools,
+  lager,
+  crypto,
+  asn1,
+  public_key,
+  egetter
+]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Public API.
@@ -82,10 +96,7 @@ load_proxies(Filename) ->
   ok.
 
 %% @doc Does a request.
--spec req([option()]) ->
-  {ok, proplists:proplist()}
-  | {error, proplists:proplist()}
-  | {ibrowse_error, term()}.
+-spec req([option()]) -> result().
 req(Options) ->
   Get = fun(K, Default) -> proplists:get_value(K, Options, Default) end,
   Agent = random_user_agent(),
