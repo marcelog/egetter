@@ -1,6 +1,7 @@
 ## About
-A simple erlang application to manage downloading. Will choose a proxy and a
-user agent at random from the given lists.
+A simple erlang application to manage downloading. Will optionally choose a proxy and a
+user agent at random from the given lists. It's always very useful to create clients
+for http apis, such as ElasticSearch.
 
 ## How to use it
 
@@ -14,6 +15,9 @@ tree.
   {proxies, "/etc/egetter/proxies.txt"}
 ]}
 ```
+
+ * Both are **optional**. Egetter will **not try** to use a proxy or choose a user-agent
+ if the corresponding option is not set.
 
  * You will need a list of proxies and a list of user agents. There are examples
  in the [priv directory](https://github.com/marcelog/egetter/tree/master/priv)

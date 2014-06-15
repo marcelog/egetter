@@ -5,24 +5,19 @@
 %%% Exports.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Public API.
--export([load/1]).
+-export([load/2]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Public API.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% @doc Creates an ETS file and loads a file into it.
--spec load(string()) -> {ets:tid(), pos_integer()}.
-load(Filename) ->
-  EtsName = ets:new(ets_table, [
-    public, ordered_set,
-    {write_concurrency, false}, {read_concurrency, true},
-    compressed
-  ]),
-  lager:debug("Loading ~p into ETS ~p", [Filename, EtsName]),
-  {ok, IoDevice} = file:open(Filename, [read, binary]),
-  Lines = load(IoDevice, 0, EtsName),
-  lager:debug("Read ~p lines from ~p into ETS ~p", [Lines, Filename, EtsName]),
-  {EtsName, Lines}.
+%% @doc Loads a file into an ets.
+-spec load(ets:tid(), string()) -> ok.
+load(Ets, File) ->
+  lager:debug("Loading ~p into ETS ~p", [File, Ets]),
+  {ok, IoDevice} = file:open(File, [read, binary]),
+  Lines = load(IoDevice, 0, Ets),
+  lager:debug("Read ~p lines from ~p into ETS ~p", [Lines, File, Ets]),
+  ok.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Private API.

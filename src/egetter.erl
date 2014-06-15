@@ -5,7 +5,6 @@
 %%% Exports.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 -export([cfg_set/2, cfg_get/1]).
--export([load_user_agents/1, load_proxies/1]).
 -export([internal_ets/0]).
 -export([start/0]).
 -export([req/1]).
@@ -77,24 +76,6 @@ cfg_get(Key) ->
     {ok, Val} -> Val
   end.
 
-%% @doc Loads a list of user agents.
--spec load_user_agents(string()) -> ok.
-load_user_agents(Filename) ->
-  File = egetter:cfg_get(user_agents),
-  lager:debug("Reading user agents from ~p", [File]),
-  {EtsName, Lines} = egetter_file:load(Filename),
-  _ = egetter:cfg_set(user_agents_ets, {EtsName, Lines}),
-  ok.
-
-%% @doc Loads a list of proxies.
--spec load_proxies(string()) -> ok.
-load_proxies(Filename) ->
-  File = egetter:cfg_get(proxies),
-  lager:debug("Reading proxies from ~p", [File]),
-  {EtsName, Lines} = egetter_file:load(Filename),
-  _ = egetter:cfg_set(proxies_ets, {EtsName, Lines}),
-  ok.
-
 %% @doc Does a request.
 -spec req([option()]) -> result().
 req(Options) ->
@@ -106,6 +87,10 @@ req(Options) ->
   Method = Get(method, get),
   Headers = [{"User-Agent", Agent} | Get(headers, [])],
   IOptions = [{response_format, binary}|setup_ibrowse_options(Options)],
+  lager:debug(
+    "Sending ~p request to ~p, Headers: ~p, Body: ~p, Ibrowse Options: ~p",
+    [Method, Url, Headers, Body, IOptions]
+  ),
   form_result(
     Options, ibrowse:send_req(Url, Headers, Method, Body, IOptions, Timeout)
   ).
@@ -130,19 +115,36 @@ random_proxy() ->
 %% @doc Returns a user agent chosen at random.
 -spec random_user_agent() -> binary()|undefined.
 random_user_agent() ->
-  random_element(user_agents_ets).
+  case random_element(user_agents_ets) of
+    undefined -> <<"Egetter - http://github.com/marcelog/egetter">>;
+    UA -> UA
+  end.
 
 %% @doc Selects a random element from the given ets type.
 -spec random_element(proxies_ets|user_agents_ets) -> term().
 random_element(EtsType) ->
   random_element(EtsType, 0, 3).
 
+-spec random_element(
+  proxies_ets|user_agents_ets, non_neg_integer(), pos_integer()
+) -> undefined|term().
 random_element(EtsType, MaxAttempt, MaxAttempt) ->
   lager:error("Giving up on getting an element from ~p", [EtsType]),
   undefined;
 
 random_element(EtsType, Attempt, MaxAttempt) ->
-  {EtsName, Elements} = cfg_get(EtsType),
+  EtsName = cfg_get(EtsType),
+  Elements = ets:info(EtsName, size),
+  random_element(EtsType, EtsName, Attempt, MaxAttempt, Elements).
+
+-spec random_element(
+  proxies_ets|user_agents_ets, ets:tid(), non_neg_integer(),
+  pos_integer(), non_neg_integer()
+) -> undefined|term().
+random_element(_EtsType, _EtsName, _Attempt, _MaxAttempt, 0) ->
+  undefined;
+
+random_element(EtsType, EtsName, Attempt, MaxAttempt, Elements) ->
   Index = random(Elements) - 1,
   try
     lager:debug(
@@ -196,7 +198,6 @@ ibrowse_option({ibrowse_options, Options}) ->
   Options;
 ibrowse_option(_) ->
   [].
-
 
 -spec form_result(
   [option()],
