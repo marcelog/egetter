@@ -37,5 +37,4 @@ tree.
    * {follow_redirect, true | false} (defaults to false)
    * {ibrowse_options, [{atom(), term()}]}
    * {use_proxy, true | false} (defaults to false)
-   * {save_to, string()}
 
