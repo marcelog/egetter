@@ -1,3 +1,7 @@
 ebin
 erl_crash.dump
 log
+deps
+egetter.plt
+sys.config
+vm.args
