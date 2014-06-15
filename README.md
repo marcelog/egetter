@@ -1,6 +1,6 @@
 ## About
-A simple erlang application to manage downloading. Will optionally choose a proxy and a
-user agent at random from the given lists. It's always very useful to create clients
+A simple erlang application to manage http requests. Will optionally choose a proxy and a
+user agent at random from the given lists. It's also very useful to create clients
 for http apis, such as ElasticSearch.
 
 ## How to use it
