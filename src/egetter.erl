@@ -212,7 +212,7 @@ form_result(Options, {ok, ResponseStatus, ResponseHeaders, ResponseBody}) ->
   IsRedirect = IntStatus >= 300 andalso IntStatus < 400,
   IsSuccess = IntStatus >= 200 andalso IntStatus < 400,
   Result = [
-    {status, ResponseStatus},
+    {status, IntStatus},
     {headers, ResponseHeaders},
     {body, ResponseBody}
   ],
