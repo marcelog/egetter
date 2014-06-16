@@ -38,8 +38,8 @@
   | {headers, [{string(), string()}]}.
 
 -type result()::
-  {ok, [result_field()]}
-  | {error, [result_field()]}
+  {ok, pos_integer(), [{string(), string()}], binary()}
+  | {error, pos_integer(), [{string(), string()}], binary()}
   | {ibrowse_error, term()}.
 
 -export_type([option/0]).
@@ -252,18 +252,14 @@ form_result(Options, {ok, ResponseStatus, ResponseHeaders, ResponseBody}) ->
   IntStatus = list_to_integer(ResponseStatus),
   IsRedirect = IntStatus >= 300 andalso IntStatus < 400,
   IsSuccess = IntStatus >= 200 andalso IntStatus < 400,
-  Result = [
-    {status, IntStatus},
-    {headers, ResponseHeaders},
-    {body, ResponseBody}
-  ],
-  if
-    IsRedirect andalso FollowRedirect ->
+  Result = if
+    IsRedirect -> redirect;
+    IsSuccess -> ok;
+    true -> error
+  end,
+  if Result =:= redirect andalso FollowRedirect ->
       NewUrl = proplists:get_value("Location", ResponseHeaders),
       lager:debug("Redirecting: ~p: ~p", [ResponseStatus, ResponseHeaders]),
       req(lists:keystore(url, 1, Options, {url, NewUrl}));
-    IsSuccess -> {ok, Result};
-    true ->
-      lager:error("Request failed: ~p", [Result]),
-      {error, Result}
+    true -> {Result, IntStatus, ResponseHeaders, ResponseBody}
   end.
