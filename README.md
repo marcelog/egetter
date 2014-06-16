@@ -33,7 +33,11 @@ tree.
      * {body, binary()}
 
  * Available options:
-   * {url, string()}
+   * {url, string()} Either specify this option **OR all of**:
+    * {host, string()}
+    * {port, pos_integer()},
+    * {scheme, string()} e.g: "http"
+    * {path_components, [string()]}
    * {timeout, pos_integer()}
    * {headers, [{string()|atom(), string()}]}
    * {body, binary()}
@@ -41,4 +45,5 @@ tree.
    * {follow_redirect, true | false} (defaults to false)
    * {ibrowse_options, [{atom(), term()}]}
    * {use_proxy, true | false} (defaults to false)
+   * {query_string, query_string()} e.g: [{"key1", "value1"}], keys and values are automatically urlencoded.
 

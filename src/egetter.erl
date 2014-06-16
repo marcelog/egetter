@@ -12,6 +12,11 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Types.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+-type qs_field():: string().
+-type qs_value():: string().
+-type query_string_option():: {qs_field(), qs_value()}.
+-type query_string():: [query_string_option()].
+
 -type option()::
   {url, string()}
   | {timeout, pos_integer()}
@@ -21,7 +26,11 @@
   | {follow_redirect, true | false}
   | {ibrowse_options, [{atom(), term()}]}
   | {use_proxy, true|false}
-  | {save_to, string()}.
+  | {query_string, query_string()}
+  | {host, string()}
+  | {port, pos_integer()}
+  | {scheme, string()}
+  | {path_components, [string()]}.
 
 -type result_field()::
   {body, binary()}
@@ -81,7 +90,7 @@ cfg_get(Key) ->
 req(Options) ->
   Get = fun(K, Default) -> proplists:get_value(K, Options, Default) end,
   Agent = random_user_agent(),
-  Url = Get(url, missing_url),
+  Url = form_url(Options),
   Body = Get(body, <<>>),
   Timeout = Get(timeout, 5000),
   Method = Get(method, get),
@@ -198,6 +207,38 @@ ibrowse_option({ibrowse_options, Options}) ->
   Options;
 ibrowse_option(_) ->
   [].
+
+-spec form_url([option()]) -> string().
+form_url(Options) ->
+  Get = fun(K, Default) -> proplists:get_value(K, Options, Default) end,
+  PreUrl = case Get(url, missing_url) of
+    missing_url ->
+      Host = Get(host, missing_host),
+      Port = Get(port, missing_port),
+      Scheme = Get(scheme, missing_scheme),
+      PathComponents = [ibrowse_lib:url_encode(P) || P <- Get(path_components, [])],
+      lists:concat([
+        Scheme, "://", Host, ":", Port, "/", string:join(PathComponents, "/")
+      ]);
+    PreUrl_ -> PreUrl_
+  end,
+  QueryString = form_query_string(Get(query_string, [])),
+  string:join([PreUrl, QueryString], "?").
+
+-spec form_query_string(query_string()) -> string().
+form_query_string(QueryString) ->
+  form_query_string(QueryString, []).
+
+-spec form_query_string(query_string(), [string()]) -> string().
+form_query_string([], Acc) ->
+  string:join(Acc, "&");
+
+form_query_string([{Key, Value}|Rest], Acc) ->
+  Option = string:join(
+    [ibrowse_lib:url_encode(Key), ibrowse_lib:url_encode(Value)],
+    "="
+  ),
+  form_query_string(Rest, [Option|Acc]).
 
 -spec form_result(
   [option()],
