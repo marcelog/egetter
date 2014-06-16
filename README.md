@@ -54,5 +54,5 @@ egetter:req([{url, "http://www.google.com/"}, {follow_redirect, true}, {query_st
 ```
 
 ```erlang
-egetter:req([{host, "google.com"}, {port, 80}, {scheme, "http"}]}]).
+egetter:req([{host, "google.com"}, {port, 80}, {scheme, "http"}, {path_components, ["some", "path"]}]}]).
 ```
