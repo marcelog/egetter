@@ -47,3 +47,12 @@ tree.
    * {use_proxy, true | false} (defaults to false)
    * {query_string, query_string()} e.g: [{"key1", "value1"}], keys and values are automatically urlencoded.
 
+## Examples
+
+```erlang
+egetter:req([{url, "http://www.google.com/"}, {follow_redirect, true}, {query_string, [{"key", " value"}]}]).
+```
+
+```erlang
+egetter:req([{host, "google.com"}, {port, 80}, {scheme, "http"}]}]).
+```
