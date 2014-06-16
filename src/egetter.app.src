@@ -17,9 +17,5 @@
     public_key
   ]},
   {mod, { egetter_app, []}},
-  {start_phases, [
-  	{read_user_agents, []},
-  	{read_proxies, []}
-  ]},
   {env, []}
 ]}.
