@@ -16,6 +16,11 @@
 -type qs_value():: string().
 -type query_string_option():: {qs_field(), qs_value()}.
 -type query_string():: [query_string_option()].
+-type status():: pos_integer().
+-type header_name():: string().
+-type header_value():: string().
+-type body():: binary().
+-type header():: {header_name(), header_value()}.
 
 -type option()::
   {url, string()}
@@ -32,14 +37,9 @@
   | {scheme, string()}
   | {path_components, [string()]}.
 
--type result_field()::
-  {body, binary()}
-  | {status, pos_integer()}
-  | {headers, [{string(), string()}]}.
-
 -type result()::
-  {ok, pos_integer(), [{string(), string()}], binary()}
-  | {error, pos_integer(), [{string(), string()}], binary()}
+  {ok, status(), [header()], body()}
+  | {error, status(), [header()], body()}
   | {ibrowse_error, term()}.
 
 -export_type([option/0]).
