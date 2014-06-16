@@ -34,10 +34,10 @@ tree.
 
  * Available options:
    * {url, string()} Either specify this option **OR all of**:
-    * {host, string()}
-    * {port, pos_integer()},
-    * {scheme, string()} e.g: "http"
-    * {path_components, [string()]}
+     * {host, string()}
+     * {port, pos_integer()},
+     * {scheme, string()} e.g: "http"
+     * {path_components, [string()]}
    * {timeout, pos_integer()}
    * {headers, [{string()|atom(), string()}]}
    * {body, binary()}
