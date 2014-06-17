@@ -28,11 +28,7 @@ init([]) ->
   ]),
   ok = load(user_agents),
   ok = load(proxies),
-  Children = [
-    ?SUP(ibrowse_sup),
-    ?SUP(ssl_sup)
-  ],
-  {ok, {{one_for_one, 5, 10}, Children}}.
+  {ok, {{one_for_one, 5, 10}, []}}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Private API.

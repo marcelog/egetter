@@ -52,6 +52,8 @@
   crypto,
   asn1,
   public_key,
+  ssl,
+  ibrowse,
   egetter
 ]).
 
