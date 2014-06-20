@@ -1,5 +1,8 @@
 -module(egetter_file).
 -author("marcelog@gmail.com").
+-github("https://github.com/marcelog").
+-homepage("http://marcelog.github.com/").
+-license("Apache License 2.0").
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Exports.
