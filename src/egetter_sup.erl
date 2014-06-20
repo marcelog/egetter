@@ -12,7 +12,7 @@
 -define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
 -define(SUP(M), {
   M, {M, start_link, []},
-  permanent, 5000, supervisor, [supervisor]
+  permanent, infinity, supervisor, [supervisor]
 }).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
