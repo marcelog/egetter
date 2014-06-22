@@ -227,8 +227,10 @@ form_url(Options) ->
       ]);
     PreUrl_ -> PreUrl_
   end,
-  QueryString = form_query_string(Get(query_string, [])),
-  string:join([PreUrl, QueryString], "?").
+  case form_query_string(Get(query_string, [])) of
+    [] -> PreUrl;
+    QueryString -> string:join([PreUrl, QueryString], "?")
+  end.
 
 -spec form_query_string(query_string()) -> string().
 form_query_string(QueryString) ->
