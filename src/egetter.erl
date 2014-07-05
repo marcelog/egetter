@@ -47,7 +47,7 @@
 
 -export_type([option/0]).
 -export_type([result/0]).
--export_type([header/0, body/0, status/0]).
+-export_type([header/0, body/0, status/0, query_string/0]).
 
 -define(APPS, [
   compiler,
